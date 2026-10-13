@@ -1,0 +1,12 @@
+# Build
+target/
+
+# IDE / ferramentas locais
+.idea/
+.vscode/
+*.iml
+.github/modernize/
+
+# SO
+Thumbs.db
+.DS_Store
