@@ -23,12 +23,12 @@ CREATE TABLE `cliente` (
   `nome` varchar(255) NOT NULL,
   `telefone` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `cliente` WRITE;
 /*!40000 ALTER TABLE `cliente` DISABLE KEYS */;
-INSERT INTO `cliente` VALUES (1,'123.456.789-01','maria.fernandes@email.com','Maria Fernandes da Silva','(18) 99999-1111'),(2,'234.567.890-12','pedro.lima@email.com','Pedro Henrique Lima','(18) 98888-2222'),(3,'345.678.901-23','fernanda.costa@email.com','Fernanda Costa','(18) 97777-3333'),(4,'456.789.012-34','rafael.mendes@email.com','Rafael Mendes','(18) 96666-4444'),(5,'567.890.123-45','juliana.rocha@email.com','Juliana Rocha','(18) 95555-5555');
+INSERT INTO `cliente` VALUES (1,'123.456.789-01','maria.fernandes@email.com','Maria Fernandes da Silva','(18) 99999-1111'),(2,'234.567.890-12','pedro.lima@email.com','Pedro Henrique Lima','(18) 98888-2222'),(3,'345.678.901-23','fernanda.costa@email.com','Fernanda Costa','(18) 97777-3333'),(4,'456.789.012-34','rafael.mendes@email.com','Rafael Mendes','(18) 96666-4444'),(5,'567.890.123-45','juliana.rocha@email.com','Juliana Rocha','(18) 95555-5555'),(6,'000.000.000-00','consumidor.final@pronte.com','Consumidor Final','(00) 00000-0000');
 /*!40000 ALTER TABLE `cliente` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `funcionario`;
