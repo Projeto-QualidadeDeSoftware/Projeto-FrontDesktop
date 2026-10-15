@@ -188,6 +188,9 @@
     -fx-size: 44px;
     -fx-border-width: 0;
 }
+.table-view .column-header {
+    -fx-padding: 0 8 0 8;
+}
 .table-view .column-header .label {
     -fx-text-fill: white;
     -fx-font-size: 11px;

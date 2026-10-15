@@ -1,5 +1,6 @@
 package com.frontdesktop;
 
+import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
@@ -7,6 +8,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -25,6 +28,25 @@ public final class Ui {
         Label title = new Label(titulo);
         title.getStyleClass().add("title");
         return new VBox(2, eyebrow, title);
+    }
+
+    public static final String ESQUERDA = "CENTER-LEFT";
+    public static final String CENTRO = "CENTER";
+    public static final String DIREITA = "CENTER-RIGHT";
+
+    /** Título da coluna alinhado do mesmo lado que o conteúdo das células. */
+    public static void cabecalhoColuna(TableColumn<?, ?> coluna, String titulo, String alinhamento) {
+        Label label = new Label(titulo);
+        label.setStyle("-fx-alignment: " + alinhamento + ";");
+        label.setMaxWidth(Double.MAX_VALUE);
+        label.prefWidthProperty().bind(Bindings.max(0, coluna.widthProperty().subtract(18)));
+        coluna.setText("");
+        coluna.setGraphic(label);
+    }
+
+    /** Alinhamento do conteúdo da célula (estilo inline vence o CSS da aplicação). */
+    public static void alinharCelula(TableCell<?, ?> celula, String alinhamento) {
+        celula.setStyle("-fx-alignment: " + alinhamento + ";");
     }
 
     public static VBox campo(String rotulo, TextField entrada) {
@@ -92,6 +114,35 @@ public final class Ui {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION, texto, ButtonType.YES, ButtonType.NO);
         alert.setHeaderText(null);
         return alert.showAndWait().orElse(ButtonType.NO) == ButtonType.YES;
+    }
+
+    /** Formata enquanto digita: só números, no máximo 11, no padrão 000.000.000-00. */
+    public static TextField mascaraCpf(TextField campo) {
+        campo.textProperty().addListener((obs, antigo, novo) -> {
+            String formatado = formatarCpf(novo);
+            if (!formatado.equals(novo)) {
+                campo.setText(formatado);
+                campo.positionCaret(formatado.length());
+            }
+        });
+        return campo;
+    }
+
+    public static String formatarCpf(String texto) {
+        String digitos = texto == null ? "" : texto.replaceAll("\\D", "");
+        if (digitos.length() > 11) {
+            digitos = digitos.substring(0, 11);
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < digitos.length(); i++) {
+            if (i == 3 || i == 6) {
+                sb.append('.');
+            } else if (i == 9) {
+                sb.append('-');
+            }
+            sb.append(digitos.charAt(i));
+        }
+        return sb.toString();
     }
 
     public static String dinheiro(double valor) {

@@ -35,8 +35,8 @@ import java.util.function.Consumer;
 
 public class MainApp extends Application {
 
-    /** Troque para true para exigir login (CPF + senha) ao abrir o app. */
-    private static final boolean LOGIN_ATIVO = false;
+    /** Exige login (CPF + senha) ao abrir o app; só Operador de Caixa e Gerente entram. */
+    private static final boolean LOGIN_ATIVO = true;
     private static final String SEM_VENDEDOR = "Selecione o vendedor";
     private static final int COLUNAS_PRODUTOS = 3;
 
@@ -156,7 +156,7 @@ public class MainApp extends Application {
 
         Button caixa = createNavButton("🛒", "Frente de Caixa", true);
         Button produtos = createNavButton("📦", "Gestão de Produtos", false);
-        Button clientes = createNavButton("👤", "Cadastro de Cliente", false);
+        Button clientes = createNavButton("👤", "Clientes", false);
         Button funcionarios = createNavButton("👥", "Gerenciar Funcionários", false);
         navButtons.addAll(List.of(caixa, produtos, clientes, funcionarios));
 
@@ -178,6 +178,7 @@ public class MainApp extends Application {
         clientes.setOnAction(event -> {
             marcarAtivo(clientes);
             root.setCenter(clienteView.getView());
+            clienteView.recarregar();
         });
         funcionarios.setOnAction(event -> {
             marcarAtivo(funcionarios);

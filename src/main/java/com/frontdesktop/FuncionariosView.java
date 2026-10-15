@@ -37,7 +37,7 @@ public class FuncionariosView {
     private final VBox root = new VBox(18);
 
     private final TextField nome = Ui.entrada("Ex: João da Silva Santos");
-    private final TextField cpf = Ui.entrada("000.000.000-00");
+    private final TextField cpf = Ui.mascaraCpf(Ui.entrada("000.000.000-00"));
     private final ComboBox<String> cargo = new ComboBox<>();
     private final TextField salario = Ui.entrada("R$ 0,00");
     private final PasswordField senha = Ui.senha("Digite a senha");
@@ -142,11 +142,11 @@ public class FuncionariosView {
         tabela.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tabela.setPlaceholder(new Label("Nenhum funcionário encontrado."));
         tabela.setSelectionModel(null);
-        tabela.getColumns().add(coluna("ID", f -> String.format("%03d", f.path("id").asLong()), 0.7, "cell-id"));
-        tabela.getColumns().add(coluna("NOME", f -> f.path("nome").asText(""), 2.4, "cell-strong"));
-        tabela.getColumns().add(coluna("CARGO", f -> f.path("cargo").asText(""), 1.8, "cell-muted"));
-        tabela.getColumns().add(coluna("CPF", f -> f.path("cpf").asText(""), 1.6, "cell-muted"));
-        tabela.getColumns().add(coluna("SALÁRIO (R$)", f -> Ui.dinheiro(f.path("salario").asDouble()), 1.3, "cell-strong"));
+        tabela.getColumns().add(coluna("ID", f -> String.format("%03d", f.path("id").asLong()), 0.7, "cell-id", Ui.ESQUERDA));
+        tabela.getColumns().add(coluna("NOME", f -> f.path("nome").asText(""), 2.4, "cell-strong", Ui.ESQUERDA));
+        tabela.getColumns().add(coluna("CARGO", f -> f.path("cargo").asText(""), 1.8, "cell-muted", Ui.ESQUERDA));
+        tabela.getColumns().add(coluna("CPF", f -> f.path("cpf").asText(""), 1.6, "cell-muted", Ui.ESQUERDA));
+        tabela.getColumns().add(coluna("SALÁRIO (R$)", f -> Ui.dinheiro(f.path("salario").asDouble()), 1.3, "cell-strong", Ui.DIREITA));
         tabela.getColumns().add(colunaAcoes());
         VBox.setVgrow(tabela, Priority.ALWAYS);
 
@@ -158,8 +158,9 @@ public class FuncionariosView {
     }
 
     private TableColumn<JsonNode, String> coluna(String titulo, Function<JsonNode, String> valor, double peso,
-                                                 String estilo) {
-        TableColumn<JsonNode, String> coluna = new TableColumn<>(titulo);
+                                                 String estilo, String alinhamento) {
+        TableColumn<JsonNode, String> coluna = new TableColumn<>();
+        Ui.cabecalhoColuna(coluna, titulo, alinhamento);
         coluna.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(valor.apply(c.getValue())));
         coluna.setPrefWidth(peso * 100);
         coluna.setSortable(false);
@@ -167,6 +168,7 @@ public class FuncionariosView {
             @Override
             protected void updateItem(String item, boolean vazio) {
                 super.updateItem(item, vazio);
+                Ui.alinharCelula(this, alinhamento);
                 setText(vazio ? null : item);
                 getStyleClass().removeAll("cell-id", "cell-strong", "cell-muted");
                 if (!vazio) {
@@ -178,13 +180,15 @@ public class FuncionariosView {
     }
 
     private TableColumn<JsonNode, JsonNode> colunaAcoes() {
-        TableColumn<JsonNode, JsonNode> coluna = new TableColumn<>("AÇÕES");
+        TableColumn<JsonNode, JsonNode> coluna = new TableColumn<>();
+        Ui.cabecalhoColuna(coluna, "AÇÕES", Ui.CENTRO);
         coluna.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(c.getValue()));
         coluna.setSortable(false);
         coluna.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(JsonNode funcionario, boolean vazio) {
                 super.updateItem(funcionario, vazio);
+                Ui.alinharCelula(this, Ui.CENTRO);
                 if (vazio || funcionario == null) {
                     setGraphic(null);
                     return;

@@ -13,7 +13,9 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
+import java.text.Normalizer;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /** Tela de login: CPF + senha de um funcionário cadastrado. */
@@ -24,7 +26,7 @@ public class LoginView {
     private final Runnable aoPrimeiroAcesso;
 
     private final StackPane root = new StackPane();
-    private final TextField cpf = Ui.entrada("000.000.000-00");
+    private final TextField cpf = Ui.mascaraCpf(Ui.entrada("000.000.000-00"));
     private final PasswordField senha = Ui.senha("Digite sua senha");
     private final Button entrar = new Button("ENTRAR");
     private final Button primeiroAcesso = Ui.botao("Cadastrar primeiro funcionário", "outline-button");
@@ -105,6 +107,11 @@ public class LoginView {
                 Ui.mensagem(status, "CPF ou senha incorretos.", true);
                 return;
             }
+            if (!cargoPermitido(usuario.cargo())) {
+                senha.clear();
+                Ui.mensagem(status, "Seu cargo (" + usuario.cargo() + ") não tem permissão para acessar o caixa.", true);
+                return;
+            }
             Ui.mensagem(status, "", false);
             senha.clear();
             aoEntrar.accept(usuario);
@@ -124,6 +131,17 @@ public class LoginView {
             }
         }
         return null;
+    }
+
+    /** Só estes cargos podem entrar no sistema (comparação sem acento e sem diferença de maiúsculas). */
+    private static final Set<String> CARGOS_PERMITIDOS = Set.of("operador de caixa", "gerente");
+
+    private static boolean cargoPermitido(String cargo) {
+        String normalizado = Normalizer.normalize(cargo == null ? "" : cargo, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .trim()
+                .toLowerCase();
+        return CARGOS_PERMITIDOS.contains(normalizado);
     }
 
     private static String apenasDigitos(String texto) {

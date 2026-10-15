@@ -85,11 +85,10 @@ public class ProdutosView {
         tabela.setSelectionModel(null);
         VBox.setVgrow(tabela, Priority.ALWAYS);
 
-        tabela.getColumns().add(coluna("ID", p -> Ui.codigoProduto(p.path("id").asLong()), 0.8, "cell-id"));
-        tabela.getColumns().add(coluna("NOME", p -> p.path("nome").asText(""), 2.2, "cell-strong"));
-        tabela.getColumns().add(coluna("DESCRIÇÃO", p -> p.path("descricao").asText(""), 3, "cell-muted"));
-        TableColumn<JsonNode, String> preco = coluna("PREÇO (R$)", p -> Ui.dinheiro(p.path("preco").asDouble()), 1.2, "cell-strong");
-        tabela.getColumns().add(preco);
+        tabela.getColumns().add(coluna("ID", p -> Ui.codigoProduto(p.path("id").asLong()), 0.8, "cell-id", Ui.ESQUERDA));
+        tabela.getColumns().add(coluna("NOME", p -> p.path("nome").asText(""), 2.2, "cell-strong", Ui.ESQUERDA));
+        tabela.getColumns().add(coluna("DESCRIÇÃO", p -> p.path("descricao").asText(""), 3, "cell-muted", Ui.ESQUERDA));
+        tabela.getColumns().add(coluna("PREÇO (R$)", p -> Ui.dinheiro(p.path("preco").asDouble()), 1.2, "cell-strong", Ui.DIREITA));
         tabela.getColumns().add(colunaEstoque());
         tabela.getColumns().add(colunaAcoes());
 
@@ -98,8 +97,9 @@ public class ProdutosView {
     }
 
     private TableColumn<JsonNode, String> coluna(String titulo, Function<JsonNode, String> valor, double peso,
-                                                 String estilo) {
-        TableColumn<JsonNode, String> coluna = new TableColumn<>(titulo);
+                                                 String estilo, String alinhamento) {
+        TableColumn<JsonNode, String> coluna = new TableColumn<>();
+        Ui.cabecalhoColuna(coluna, titulo, alinhamento);
         coluna.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(valor.apply(c.getValue())));
         coluna.setPrefWidth(peso * 100);
         coluna.setSortable(false);
@@ -107,6 +107,7 @@ public class ProdutosView {
             @Override
             protected void updateItem(String item, boolean vazio) {
                 super.updateItem(item, vazio);
+                Ui.alinharCelula(this, alinhamento);
                 setText(vazio ? null : item);
                 getStyleClass().removeAll("cell-id", "cell-strong", "cell-muted");
                 if (!vazio) {
@@ -118,13 +119,15 @@ public class ProdutosView {
     }
 
     private TableColumn<JsonNode, JsonNode> colunaEstoque() {
-        TableColumn<JsonNode, JsonNode> coluna = new TableColumn<>("ESTOQUE");
+        TableColumn<JsonNode, JsonNode> coluna = new TableColumn<>();
+        Ui.cabecalhoColuna(coluna, "ESTOQUE", Ui.CENTRO);
         coluna.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(c.getValue()));
         coluna.setSortable(false);
         coluna.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(JsonNode produto, boolean vazio) {
                 super.updateItem(produto, vazio);
+                Ui.alinharCelula(this, Ui.CENTRO);
                 if (vazio || produto == null) {
                     setGraphic(null);
                     return;
@@ -140,13 +143,15 @@ public class ProdutosView {
     }
 
     private TableColumn<JsonNode, JsonNode> colunaAcoes() {
-        TableColumn<JsonNode, JsonNode> coluna = new TableColumn<>("AÇÕES");
+        TableColumn<JsonNode, JsonNode> coluna = new TableColumn<>();
+        Ui.cabecalhoColuna(coluna, "AÇÕES", Ui.CENTRO);
         coluna.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(c.getValue()));
         coluna.setSortable(false);
         coluna.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(JsonNode produto, boolean vazio) {
                 super.updateItem(produto, vazio);
+                Ui.alinharCelula(this, Ui.CENTRO);
                 if (vazio || produto == null) {
                     setGraphic(null);
                     return;
