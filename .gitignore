@@ -10,3 +10,7 @@ target/
 # SO
 Thumbs.db
 .DS_Store
+
+# Pacote gerado com jpackage
+dist/
+build-input/
