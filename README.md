@@ -17,6 +17,16 @@ mvnw.cmd javafx:run
 ```
 ou execute o `run.bat`.
 
+## Banco de dados
+O arquivo [`database/projeto.sql`](database/projeto.sql) recria o banco `projeto` do MySQL com a estrutura e dados fictícios (produtos, clientes e funcionários). Para importar:
+
+```
+mysql -u root -p < database/projeto.sql
+```
+
+Usuário de teste para o login: CPF `111.111.111-11` e senha `1234` (Operador de Caixa).
+A API (`application.properties`) usa o banco `projeto` em `localhost:3306`.
+
 ## Tecnologias
 Java 17 · JavaFX 17 · Maven · Jackson · HTTP REST
 
