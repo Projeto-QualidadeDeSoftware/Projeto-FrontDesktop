@@ -302,7 +302,7 @@ public class MainApp extends Application {
         totalBox.getStyleClass().add("total-box");
 
         clienteBox = new ComboBox<>();
-        clienteBox.setPromptText("Selecione o cliente");
+        clienteBox.setPromptText("Consumidor Final");
         funcionarioBox = new ComboBox<>();
         funcionarioBox.setPromptText(SEM_VENDEDOR);
 
@@ -315,7 +315,7 @@ public class MainApp extends Application {
         statusLabel.setWrapText(true);
         statusLabel.getStyleClass().add("status-label");
 
-        VBox dadosCard = new VBox(12, Ui.campo("Cliente", clienteBox), Ui.campo("Vendedor", funcionarioBox),
+        VBox dadosCard = new VBox(12, Ui.campo("Cliente (opcional)", clienteBox), Ui.campo("Vendedor", funcionarioBox),
                 finalizarButton, statusLabel);
         dadosCard.getStyleClass().add("card");
         dadosCard.setPadding(new Insets(16));
@@ -370,12 +370,14 @@ public class MainApp extends Application {
     }
 
     private void carregarPessoas() {
-        executarEmBackground("carregar-clientes", apiClient::listarClientes, clientes -> {
+        executarEmBackground("carregar-clientes", apiClient::listarClientesComConsumidorFinal, clientes -> {
             ApiClient.Pessoa atual = clienteBox.getValue();
             clienteBox.getItems().setAll(clientes);
-            if (atual != null) {
-                clientes.stream().filter(c -> c.id().equals(atual.id())).findFirst().ifPresent(clienteBox::setValue);
-            }
+            // mantém a escolha atual; senão usa o Consumidor Final (venda rápida, sem identificar cliente)
+            clientes.stream()
+                    .filter(c -> atual != null ? c.id().equals(atual.id())
+                            : ApiClient.CONSUMIDOR_FINAL.equalsIgnoreCase(c.nome()))
+                    .findFirst().ifPresent(clienteBox::setValue);
         }, erro -> Ui.mensagem(statusLabel, "Erro ao carregar clientes: " + erro.getMessage(), true));
 
         executarEmBackground("carregar-funcionarios", apiClient::listarFuncionarios, funcionarios -> {
@@ -544,7 +546,8 @@ public class MainApp extends Application {
         ApiClient.Pessoa cliente = clienteBox.getValue();
         ApiClient.Pessoa funcionario = funcionarioBox.getValue();
         if (cliente == null || funcionario == null) {
-            Ui.mensagem(statusLabel, "Selecione o cliente e o vendedor.", true);
+            Ui.mensagem(statusLabel, cliente == null && funcionario != null
+                    ? "Aguarde o carregamento dos clientes." : "Selecione o vendedor.", true);
             return;
         }
 
@@ -562,7 +565,7 @@ public class MainApp extends Application {
                 () -> apiClient.finalizarVenda(cliente.id(), funcionario.id(), productIds, LocalDate.now().toString()),
                 resposta -> {
                     finalizarButton.setDisable(false);
-                    Ui.mensagem(statusLabel, "Venda registrada com sucesso para " + cliente.nome() + ".", false);
+                    Ui.mensagem(statusLabel, "Venda registrada com sucesso (" + cliente.nome() + ").", false);
                     carrinho.clear();
                     atualizarCarrinho();
                     carregarProdutos();

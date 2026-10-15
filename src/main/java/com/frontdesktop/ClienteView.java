@@ -61,6 +61,9 @@ public class ClienteView {
 
     public void recarregar() {
         Async.run("clientes-listar", () -> api.listar(ENDPOINT), registros -> {
+            // o Consumidor Final é usado pelo caixa e não deve ser editado nem excluído por aqui
+            registros.removeIf(c -> com.frontdesktop.api.ApiClient.CONSUMIDOR_FINAL
+                    .equalsIgnoreCase(c.path("nome").asText("")));
             dados.setAll(registros);
             if (status.getText().isEmpty() || status.getText().startsWith("Erro")) {
                 Ui.mensagem(status, "", false);

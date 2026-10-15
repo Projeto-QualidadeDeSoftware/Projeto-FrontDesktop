@@ -14,7 +14,60 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ApiClient {
-    private static final String BASE_URL = "http://localhost:8080";
+    public static final String CONSUMIDOR_FINAL = "Consumidor Final";
+    private static final String BASE_URL = resolverUrlBase();
+
+    /**
+     * Endereço da API, na ordem: variável de ambiente PRONTE_API_URL, propriedade -Dapi.url,
+     * arquivo api.properties (chave api.url) na pasta atual ou ao lado do programa, e por fim localhost.
+     */
+    private static String resolverUrlBase() {
+        String url = System.getenv("PRONTE_API_URL");
+        if (url == null || url.isBlank()) {
+            url = System.getProperty("api.url");
+        }
+        if (url == null || url.isBlank()) {
+            url = lerDeArquivo();
+        }
+        if (url == null || url.isBlank()) {
+            return "http://localhost:8080";
+        }
+        url = url.trim();
+        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+    }
+
+    private static String lerDeArquivo() {
+        List<java.nio.file.Path> candidatos = new ArrayList<>();
+        candidatos.add(java.nio.file.Path.of(System.getProperty("user.dir"), "api.properties"));
+        try {
+            java.nio.file.Path codigo = java.nio.file.Path.of(
+                    ApiClient.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            java.nio.file.Path base = codigo.getParent();
+            if (base != null) {
+                candidatos.add(base.resolve("api.properties"));
+                if (base.getParent() != null) {
+                    candidatos.add(base.getParent().resolve("api.properties"));
+                }
+            }
+        } catch (Exception ignorado) {
+            // sem acesso ao local do jar: segue só com a pasta atual
+        }
+        for (java.nio.file.Path arquivo : candidatos) {
+            if (java.nio.file.Files.isRegularFile(arquivo)) {
+                try (java.io.InputStream in = java.nio.file.Files.newInputStream(arquivo)) {
+                    java.util.Properties props = new java.util.Properties();
+                    props.load(in);
+                    String valor = props.getProperty("api.url");
+                    if (valor != null && !valor.isBlank()) {
+                        return valor;
+                    }
+                } catch (IOException ignorado) {
+                    // tenta o próximo candidato
+                }
+            }
+        }
+        return null;
+    }
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
             .build();
@@ -40,6 +93,26 @@ public class ApiClient {
         return listarPessoas("/cliente", "clientes");
     }
 
+    /**
+     * Lista os clientes garantindo que o "Consumidor Final" exista (a API exige um cliente em toda venda).
+     * Ele vem sempre em primeiro lugar.
+     */
+    public List<Pessoa> listarClientesComConsumidorFinal() throws IOException, InterruptedException {
+        List<Pessoa> clientes = listarClientes();
+        if (clientes.stream().noneMatch(c -> CONSUMIDOR_FINAL.equalsIgnoreCase(c.nome()))) {
+            java.util.Map<String, Object> campos = new java.util.LinkedHashMap<>();
+            campos.put("nome", CONSUMIDOR_FINAL);
+            campos.put("cpf", "000.000.000-00");
+            campos.put("email", "consumidor.final@pronte.com");
+            campos.put("telefone", "(00) 00000-0000");
+            salvar("/cliente", null, campos);
+            clientes = listarClientes();
+        }
+        List<Pessoa> ordenada = new ArrayList<>(clientes);
+        ordenada.sort(java.util.Comparator.comparing(c -> !CONSUMIDOR_FINAL.equalsIgnoreCase(c.nome())));
+        return ordenada;
+    }
+
     public List<Pessoa> listarFuncionarios() throws IOException, InterruptedException {
         return listarPessoas("/funcionario", "funcionários");
     }
@@ -48,7 +121,13 @@ public class ApiClient {
             throws IOException, InterruptedException {
         String ids = produtosIds.stream().map(String::valueOf).collect(Collectors.joining(","));
         String url = "/venda?clienteId=" + clienteId + "&funcionarioId=" + funcionarioId + "&produtosIds=" + ids;
-        String body = mapper.writeValueAsString(java.util.Map.of("dataVenda", dataVenda));
+        // a API valida o corpo antes de ler os parâmetros: cliente, funcionário e produtos precisam estar nele
+        java.util.Map<String, Object> corpo = new java.util.LinkedHashMap<>();
+        corpo.put("dataVenda", dataVenda);
+        corpo.put("cliente", java.util.Map.of("id", clienteId));
+        corpo.put("funcionario", java.util.Map.of("id", funcionarioId));
+        corpo.put("produtos", produtosIds.stream().map(id -> java.util.Map.of("id", id)).toList());
+        String body = mapper.writeValueAsString(corpo);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + url))
