@@ -12,7 +12,7 @@ Interface desktop em **JavaFX** para o sistema de conveniência. Consome a API R
 - **Assistente de Estoque:** perguntas em texto livre sobre o estoque (ex.: "o que está acabando?"), respondidas pela IA da API (`POST /assistente/pergunta`).
 
 ## Instalação (Windows)
-Baixe o instalador `Pronte Conveniencia-1.1.0.exe` na página de [Releases](../../releases) e execute. O Java já vem embutido; o programa é instalado para o usuário atual e cria atalhos no Menu Iniciar e na Área de Trabalho. Para remover, use "Aplicativos instalados" do Windows.
+Baixe o instalador `Pronte Conveniencia-1.2.0.exe` na página de [Releases](../../releases) e execute. O Java já vem embutido; o programa é instalado para o usuário atual e cria atalhos no Menu Iniciar e na Área de Trabalho. Para remover, use "Aplicativos instalados" do Windows.
 
 O endereço da API pode ser alterado no arquivo `api.properties` (pasta `app` do programa instalado), pela variável de ambiente `PRONTE_API_URL` ou por `-Dapi.url`. Sem nada configurado, usa `http://localhost:8080`.
 
