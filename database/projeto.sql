@@ -69,6 +69,7 @@ CREATE TABLE `item_venda` (
 
 LOCK TABLES `item_venda` WRITE;
 /*!40000 ALTER TABLE `item_venda` DISABLE KEYS */;
+INSERT INTO `item_venda` VALUES (5,1,6.5,6,4),(6,1,8,5,4);
 /*!40000 ALTER TABLE `item_venda` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `produto`;
@@ -86,7 +87,7 @@ CREATE TABLE `produto` (
 
 LOCK TABLES `produto` WRITE;
 /*!40000 ALTER TABLE `produto` DISABLE KEYS */;
-INSERT INTO `produto` VALUES (1,'Salgado assado, unidade 90g',42,'Coxinha de Frango',7.5),(2,'Dose única, copo 50ml',100,'Café Expresso',4),(3,'Cola, 350ml',87,'Refrigerante Lata',6),(4,'Pacote com 4 unidades',30,'Pão de Queijo',5.5),(5,'Sabor morango, 60ml',15,'Sorvete Picolé',8),(6,'Ao leite, 90g',58,'Chocolate Barra',6.5),(7,'Assada, unidade 100g',21,'Esfirra de Carne',8.5),(8,'Copo 200ml, adoçado',60,'Cappuccino',6),(9,'Garrafa 500ml',64,'Água com Gás',4.5);
+INSERT INTO `produto` VALUES (1,'Salgado assado, unidade 90g',42,'Coxinha de Frango',7.5),(2,'Dose única, copo 50ml',100,'Café Expresso',4),(3,'Cola, 350ml',87,'Refrigerante Lata',6),(4,'Pacote com 4 unidades',30,'Pão de Queijo',5.5),(5,'Sabor morango, 60ml',14,'Sorvete Picolé',8),(6,'Ao leite, 90g',57,'Chocolate Barra',6.5),(7,'Assada, unidade 100g',21,'Esfirra de Carne',8.5),(8,'Copo 200ml, adoçado',60,'Cappuccino',6),(9,'Garrafa 500ml',64,'Água com Gás',4.5);
 /*!40000 ALTER TABLE `produto` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `venda`;
@@ -108,6 +109,7 @@ CREATE TABLE `venda` (
 
 LOCK TABLES `venda` WRITE;
 /*!40000 ALTER TABLE `venda` DISABLE KEYS */;
+INSERT INTO `venda` VALUES (4,'2026-10-16',14.5,6,1);
 /*!40000 ALTER TABLE `venda` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `venda_produto`;
