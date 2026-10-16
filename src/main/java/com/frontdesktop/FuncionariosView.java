@@ -222,11 +222,11 @@ public class FuncionariosView {
         cpf.setText(funcionario.path("cpf").asText(""));
         cargo.setValue(funcionario.path("cargo").asText(""));
         salario.setText(Ui.dinheiro(funcionario.path("salario").asDouble()));
-        String atual = funcionario.path("senha").asText("");
-        senha.setText(atual);
-        confirmarSenha.setText(atual);
+        // a API não devolve a senha (ela fica guardada protegida): é preciso informar a senha de novo
+        senha.clear();
+        confirmarSenha.clear();
         formTitulo.setText("Editar Funcionário #" + idEmEdicao);
-        Ui.mensagem(status, "", false);
+        Ui.mensagem(status, "Informe a senha do funcionário para salvar (pode ser a mesma).", false);
     }
 
     private void salvar() {

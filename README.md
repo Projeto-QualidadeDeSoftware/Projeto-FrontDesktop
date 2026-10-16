@@ -3,11 +3,12 @@
 Interface desktop em **JavaFX** para o sistema de conveniência. Consome a API REST do projeto (Spring Boot), por padrão em `http://localhost:8080`.
 
 ## Telas
-- **Login:** CPF (com máscara) e senha de um funcionário. Só os cargos **Operador de Caixa** e **Gerente** entram.
+- **Login:** CPF (com máscara) e senha de um funcionário, validados pela API (`POST /auth/login`). Só os cargos **Operador de Caixa**, **Gerente** e **Administrador** entram. Se o token vencer (8 horas), o programa volta para o login.
 - **Frente de Caixa:** busca de produtos, carrinho, controle de estoque e finalização da venda (atalho F2). O cliente é opcional: por padrão a venda é registrada como **Consumidor Final**, para um fluxo rápido.
 - **Gestão de Produtos:** listagem, busca, cadastro, edição e exclusão.
 - **Clientes:** cadastro, edição, exclusão e listagem com busca.
-- **Gerenciar Funcionários:** cadastro, edição, exclusão e listagem com busca.
+- **Gerenciar Funcionários:** cadastro, edição, exclusão e listagem com busca. Ao editar, a senha precisa ser informada novamente, porque a API não devolve a senha.
+- **Assistente de Estoque:** perguntas em texto livre sobre o estoque (ex.: "o que está acabando?"), respondidas pela IA da API (`POST /assistente/pergunta`).
 
 ## Instalação (Windows)
 Baixe o instalador `Pronte Conveniencia-1.1.0.exe` na página de [Releases](../../releases) e execute. O Java já vem embutido; o programa é instalado para o usuário atual e cria atalhos no Menu Iniciar e na Área de Trabalho. Para remover, use "Aplicativos instalados" do Windows.
@@ -16,9 +17,10 @@ O endereço da API pode ser alterado no arquivo `api.properties` (pasta `app` do
 
 ## Como usar
 1. Suba o MySQL e a API (veja a seção *Banco de dados*).
-2. Abra o programa e entre com CPF e senha (só Operador de Caixa e Gerente).
+2. Abra o programa e entre com CPF e senha (Operador de Caixa, Gerente ou Administrador).
 3. **Frente de Caixa:** clique nos produtos para adicionar ao carrinho, ajuste as quantidades, confira o vendedor e finalize com **F2**. O cliente é opcional.
 4. **Produtos, Clientes e Funcionários:** use o formulário para cadastrar; na lista é possível buscar, editar e excluir.
+5. **Assistente de Estoque:** digite a pergunta e pressione Enter. A API precisa estar configurada com a chave da Mistral (`MISTRAL_API_KEY`); sem ela, a tela mostra que o assistente não está configurado.
 
 ## Como executar (desenvolvimento)
 Pré-requisitos: Java 17 e a API rodando em `localhost:8080` (com o MySQL ligado).
@@ -35,7 +37,8 @@ O arquivo [`database/projeto.sql`](database/projeto.sql) recria o banco `projeto
 mysql -u root -p < database/projeto.sql
 ```
 
-Usuários de teste (senha `1234`): CPF `111.111.111-11` (Operador de Caixa) e `222.222.222-22` (Gerente).
+Usuários de teste (senha `1234`): CPF `111.111.111-11` (Operador de Caixa) e `222.222.222-22` (Gerente). Ao iniciar, a API converte essas senhas para o formato protegido; o login continua com `1234`.
+Com o banco sem nenhum funcionário, a API cria o usuário inicial CPF `000.000.000-00`, senha `admin123`, cargo Administrador.
 O script também cria o cliente **Consumidor Final**, usado nas vendas sem cliente identificado (o front o cria sozinho se não existir).
 A API (`application.properties`) usa o banco `projeto` em `localhost:3306`.
 
@@ -43,9 +46,7 @@ A API (`application.properties`) usa o banco `projeto` em `localhost:3306`.
 Java 17 · JavaFX 17 · Maven · Jackson · HTTP REST
 
 ## Observações
-- O login valida CPF e senha consultando `GET /funcionario`, pois a API ainda não possui endpoint de autenticação. Para desligar o login, use `LOGIN_ATIVO` em `MainApp.java`.
-- Limitações que dependem da API:
-  - não existe endpoint de login: a validação é feita no cliente e a senha trafega em `GET /funcionario`;
-  - a API exige um cliente em toda venda, por isso o "Consumidor Final";
-  - a venda não considera quantidades (produtos repetidos são agrupados em `findAllById`) e não desconta o estoque.
-- Em desenvolvimento.
+- Todas as requisições, exceto o login, enviam o token no cabeçalho `Authorization: Bearer <token>`.
+- A venda envia cada produto com sua quantidade; a API calcula o total, dá baixa no estoque e recusa a venda se faltar estoque.
+- A API exige um cliente em toda venda, por isso o "Consumidor Final".
+- Para desligar o login durante o desenvolvimento, use `LOGIN_ATIVO` em `MainApp.java` (a API continuará exigindo o token).

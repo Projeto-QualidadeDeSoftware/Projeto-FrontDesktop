@@ -11,7 +11,6 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ApiClient {
     public static final String CONSUMIDOR_FINAL = "Consumidor Final";
@@ -73,6 +72,87 @@ public class ApiClient {
             .build();
     private final ObjectMapper mapper = new ObjectMapper();
 
+    /** Token recebido no login; vai no cabeçalho Authorization de todas as outras requisições. */
+    private volatile String token;
+    private volatile Runnable aoExpirarSessao = () -> { };
+
+    /** Chamado quando a API responde 401 (token vencido ou inválido), para voltar à tela de login. */
+    public void aoExpirarSessao(Runnable acao) {
+        this.aoExpirarSessao = acao == null ? () -> { } : acao;
+    }
+
+    public void sair() {
+        token = null;
+    }
+
+    /**
+     * Faz login na API. Tenta o CPF com máscara e, se não encontrar, só com números,
+     * porque os cadastros podem ter sido gravados nos dois formatos.
+     *
+     * @return o funcionário logado, ou null se CPF ou senha estiverem errados
+     */
+    public Usuario login(String cpfDigitos, String senha) throws IOException, InterruptedException {
+        String formatado = cpfDigitos.length() == 11
+                ? cpfDigitos.substring(0, 3) + "." + cpfDigitos.substring(3, 6) + "."
+                        + cpfDigitos.substring(6, 9) + "-" + cpfDigitos.substring(9)
+                : cpfDigitos;
+
+        for (String cpf : List.of(formatado, cpfDigitos)) {
+            java.util.Map<String, Object> corpo = new java.util.LinkedHashMap<>();
+            corpo.put("cpf", cpf);
+            corpo.put("senha", senha);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(BASE_URL + "/auth/login"))
+                    .timeout(Duration.ofSeconds(15))
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(corpo)))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 401) {
+                if (cpf.equals(cpfDigitos)) {
+                    return null;
+                }
+                continue;
+            }
+            if (response.statusCode() >= 400) {
+                throw new IOException("Erro ao entrar (HTTP " + response.statusCode() + "): "
+                        + mensagemDeErro(response.body()));
+            }
+
+            JsonNode resposta = mapper.readTree(response.body());
+            token = resposta.path("token").asText(null);
+            JsonNode funcionario = resposta.path("funcionario");
+            return new Usuario(funcionario.path("id").asLong(), funcionario.path("nome").asText(""),
+                    funcionario.path("cargo").asText(""));
+        }
+        return null;
+    }
+
+    /** Pergunta ao assistente de IA sobre o estoque e devolve a resposta em texto. */
+    public String perguntarAoAssistente(String pergunta) throws IOException, InterruptedException {
+        String body = mapper.writeValueAsString(java.util.Map.of("pergunta", pergunta));
+        HttpRequest request = autenticado(HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/assistente/pergunta"))
+                .timeout(Duration.ofSeconds(45))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body)))
+                .build();
+        HttpResponse<String> response = enviar(request, "consultar o assistente");
+        return mapper.readTree(response.body()).path("resposta").asText("");
+    }
+
+    private HttpRequest.Builder autenticado(HttpRequest.Builder builder) {
+        String atual = token;
+        if (atual != null) {
+            builder.header("Authorization", "Bearer " + atual);
+        }
+        return builder;
+    }
+
     public List<Produto> listarProdutos() throws IOException, InterruptedException {
         List<Produto> result = new ArrayList<>();
         for (JsonNode node : getArray("/produto", "produtos")) {
@@ -117,31 +197,32 @@ public class ApiClient {
         return listarPessoas("/funcionario", "funcionários");
     }
 
-    public String finalizarVenda(long clienteId, long funcionarioId, List<Long> produtosIds, String dataVenda)
-            throws IOException, InterruptedException {
-        String ids = produtosIds.stream().map(String::valueOf).collect(Collectors.joining(","));
-        String url = "/venda?clienteId=" + clienteId + "&funcionarioId=" + funcionarioId + "&produtosIds=" + ids;
-        // a API valida o corpo antes de ler os parâmetros: cliente, funcionário e produtos precisam estar nele
+    /**
+     * Registra a venda. A API calcula o total e dá baixa no estoque; se faltar estoque
+     * de algum item, a venda inteira é recusada.
+     *
+     * @param itens id do produto → quantidade
+     */
+    public String finalizarVenda(long clienteId, long funcionarioId, java.util.Map<Long, Integer> itens,
+                                 String dataVenda) throws IOException, InterruptedException {
         java.util.Map<String, Object> corpo = new java.util.LinkedHashMap<>();
         corpo.put("dataVenda", dataVenda);
-        corpo.put("cliente", java.util.Map.of("id", clienteId));
-        corpo.put("funcionario", java.util.Map.of("id", funcionarioId));
-        corpo.put("produtos", produtosIds.stream().map(id -> java.util.Map.of("id", id)).toList());
+        corpo.put("clienteId", clienteId);
+        corpo.put("funcionarioId", funcionarioId);
+        corpo.put("itens", itens.entrySet().stream()
+                .map(e -> java.util.Map.of("produtoId", e.getKey(), "quantidade", e.getValue()))
+                .toList());
         String body = mapper.writeValueAsString(corpo);
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + url))
+        HttpRequest request = autenticado(HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/venda"))
                 .timeout(Duration.ofSeconds(15))
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .POST(HttpRequest.BodyPublishers.ofString(body)))
                 .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() >= 400) {
-            throw new IOException("Erro ao finalizar venda (HTTP " + response.statusCode() + "): " + response.body());
-        }
-        return response.body();
+        return enviar(request, "finalizar a venda").body();
     }
 
     /** Lista os registros de um recurso (ex.: "/cliente") como nós JSON. */
@@ -155,7 +236,7 @@ public class ApiClient {
     public void salvar(String path, Long id, java.util.Map<String, Object> campos)
             throws IOException, InterruptedException {
         String body = mapper.writeValueAsString(campos);
-        HttpRequest.Builder builder = HttpRequest.newBuilder()
+        HttpRequest.Builder builder = autenticado(HttpRequest.newBuilder())
                 .uri(URI.create(BASE_URL + path + (id == null ? "" : "/" + id)))
                 .timeout(Duration.ofSeconds(15))
                 .header("Content-Type", "application/json")
@@ -167,7 +248,7 @@ public class ApiClient {
     }
 
     public void excluir(String path, long id) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
+        HttpRequest request = autenticado(HttpRequest.newBuilder())
                 .uri(URI.create(BASE_URL + path + "/" + id))
                 .timeout(Duration.ofSeconds(15))
                 .DELETE()
@@ -175,17 +256,30 @@ public class ApiClient {
         enviar(request, "excluir");
     }
 
-    private void enviar(HttpRequest request, String acao) throws IOException, InterruptedException {
+    private HttpResponse<String> enviar(HttpRequest request, String acao) throws IOException, InterruptedException {
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        verificarSessao(response);
         if (response.statusCode() >= 400) {
-            throw new IOException("Não foi possível " + acao + " (HTTP " + response.statusCode() + "): "
-                    + mensagemDeErro(response.body()));
+            throw new IOException("Não foi possível " + acao + ": " + mensagemDeErro(response.body()));
+        }
+        return response;
+    }
+
+    /** 401 fora do login = token vencido ou inválido: avisa a tela para voltar ao login. */
+    private void verificarSessao(HttpResponse<String> response) throws IOException {
+        if (response.statusCode() == 401) {
+            token = null;
+            aoExpirarSessao.run();
+            throw new IOException("Sua sessão expirou. Entre novamente.");
         }
     }
 
     private String mensagemDeErro(String body) {
         try {
             JsonNode node = mapper.readTree(body);
+            if (node != null && node.hasNonNull("mensagem")) {
+                return node.get("mensagem").asText();
+            }
             if (node != null && node.hasNonNull("message")) {
                 return node.get("message").asText();
             }
@@ -206,7 +300,7 @@ public class ApiClient {
     }
 
     private JsonNode getArray(String path, String descricao) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
+        HttpRequest request = autenticado(HttpRequest.newBuilder())
                 .uri(URI.create(BASE_URL + path))
                 .timeout(Duration.ofSeconds(15))
                 .header("Accept", "application/json")
@@ -214,6 +308,7 @@ public class ApiClient {
                 .build();
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        verificarSessao(response);
         if (response.statusCode() >= 400) {
             throw new IOException("Erro ao buscar " + descricao + " (HTTP " + response.statusCode() + ")");
         }

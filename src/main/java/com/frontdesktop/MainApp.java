@@ -64,6 +64,12 @@ public class MainApp extends Application {
     public void start(Stage stage) {
         this.stage = stage;
         stage.setTitle("Prontê Conveniência");
+        // token vencido: volta para o login, uma vez só, na thread da interface
+        apiClient.aoExpirarSessao(() -> javafx.application.Platform.runLater(() -> {
+            if (usuarioLogado != null) {
+                mostrarLogin("Sua sessão expirou. Entre novamente.");
+            }
+        }));
         if (LOGIN_ATIVO) {
             mostrarLogin();
         } else {
@@ -79,19 +85,23 @@ public class MainApp extends Application {
     }
 
     private void mostrarLogin() {
+        mostrarLogin(null);
+    }
+
+    private void mostrarLogin(String aviso) {
+        apiClient.sair();
         usuarioLogado = null;
         carrinho.clear();
         produtosMap.clear();
         navButtons.clear();
 
-        LoginView login = new LoginView(apiClient, usuario -> abrirSistema(usuario, false),
-                () -> abrirSistema(null, true));
+        LoginView login = new LoginView(apiClient, usuario -> abrirSistema(usuario, false), aviso);
         stage.setScene(novaCena(login.getView()));
     }
 
     /**
-     * @param usuario        funcionário autenticado (nulo apenas no primeiro acesso)
-     * @param primeiroAcesso abre direto em Gerenciar Funcionários, para cadastrar o primeiro usuário
+     * @param usuario        funcionário autenticado
+     * @param primeiroAcesso abre direto em Gerenciar Funcionários
      */
     private void abrirSistema(ApiClient.Usuario usuario, boolean primeiroAcesso) {
         usuarioLogado = usuario;
@@ -158,11 +168,13 @@ public class MainApp extends Application {
         Button produtos = createNavButton("📦", "Gestão de Produtos", false);
         Button clientes = createNavButton("👤", "Clientes", false);
         Button funcionarios = createNavButton("👥", "Gerenciar Funcionários", false);
-        navButtons.addAll(List.of(caixa, produtos, clientes, funcionarios));
+        Button assistente = createNavButton("💬", "Assistente de Estoque", false);
+        navButtons.addAll(List.of(caixa, produtos, clientes, funcionarios, assistente));
 
         ProdutosView produtosView = new ProdutosView(apiClient);
         ClienteView clienteView = new ClienteView(apiClient);
         FuncionariosView funcionariosView = new FuncionariosView(apiClient);
+        AssistenteView assistenteView = new AssistenteView(apiClient);
 
         caixa.setOnAction(event -> {
             marcarAtivo(caixa);
@@ -186,7 +198,13 @@ public class MainApp extends Application {
             funcionariosView.recarregar();
         });
 
-        VBox nav = new VBox(8, caixa, produtos, clientes, funcionarios);
+        assistente.setOnAction(event -> {
+            marcarAtivo(assistente);
+            root.setCenter(assistenteView.getView());
+            assistenteView.focar();
+        });
+
+        VBox nav = new VBox(8, caixa, produtos, clientes, funcionarios, assistente);
         nav.setPadding(new Insets(8, 16, 16, 16));
 
         Region spacer = new Region();
@@ -551,18 +569,16 @@ public class MainApp extends Application {
             return;
         }
 
-        List<Long> productIds = new ArrayList<>();
+        Map<Long, Integer> itens = new LinkedHashMap<>();
         for (CartItem item : carrinho.values()) {
-            for (int i = 0; i < item.quantidade(); i++) {
-                productIds.add(item.id());
-            }
+            itens.put(item.id(), item.quantidade());
         }
 
         finalizarButton.setDisable(true);
         Ui.mensagem(statusLabel, "Enviando venda...", false);
 
         executarEmBackground("finalizar-venda",
-                () -> apiClient.finalizarVenda(cliente.id(), funcionario.id(), productIds, LocalDate.now().toString()),
+                () -> apiClient.finalizarVenda(cliente.id(), funcionario.id(), itens, LocalDate.now().toString()),
                 resposta -> {
                     finalizarButton.setDisable(false);
                     Ui.mensagem(statusLabel, "Venda registrada com sucesso (" + cliente.nome() + ").", false);
@@ -572,7 +588,9 @@ public class MainApp extends Application {
                 },
                 erro -> {
                     finalizarButton.setDisable(false);
-                    Ui.mensagem(statusLabel, "Erro ao enviar venda: " + erro.getMessage(), true);
+                    Ui.mensagem(statusLabel, erro.getMessage(), true);
+                    // o estoque pode ter mudado em outro caixa: recarrega para mostrar o valor atual
+                    carregarProdutos();
                 });
     }
 

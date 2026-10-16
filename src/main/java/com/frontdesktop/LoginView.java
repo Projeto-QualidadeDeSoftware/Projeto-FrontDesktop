@@ -1,6 +1,5 @@
 package com.frontdesktop;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.frontdesktop.api.ApiClient;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -14,7 +13,6 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.text.Normalizer;
-import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -23,20 +21,20 @@ public class LoginView {
 
     private final ApiClient api;
     private final Consumer<ApiClient.Usuario> aoEntrar;
-    private final Runnable aoPrimeiroAcesso;
 
     private final StackPane root = new StackPane();
     private final TextField cpf = Ui.mascaraCpf(Ui.entrada("000.000.000-00"));
     private final PasswordField senha = Ui.senha("Digite sua senha");
     private final Button entrar = new Button("ENTRAR");
-    private final Button primeiroAcesso = Ui.botao("Cadastrar primeiro funcionário", "outline-button");
     private final Label status = new Label();
 
-    public LoginView(ApiClient api, Consumer<ApiClient.Usuario> aoEntrar, Runnable aoPrimeiroAcesso) {
+    public LoginView(ApiClient api, Consumer<ApiClient.Usuario> aoEntrar, String avisoInicial) {
         this.api = api;
         this.aoEntrar = aoEntrar;
-        this.aoPrimeiroAcesso = aoPrimeiroAcesso;
         montar();
+        if (avisoInicial != null && !avisoInicial.isBlank()) {
+            Ui.mensagem(status, avisoInicial, true);
+        }
     }
 
     public Node getView() {
@@ -61,17 +59,11 @@ public class LoginView {
         entrar.setDefaultButton(true);
         entrar.setOnAction(event -> autenticar());
 
-        primeiroAcesso.setMaxWidth(Double.MAX_VALUE);
-        primeiroAcesso.setPadding(new Insets(10));
-        primeiroAcesso.setVisible(false);
-        primeiroAcesso.managedProperty().bind(primeiroAcesso.visibleProperty());
-        primeiroAcesso.setOnAction(event -> aoPrimeiroAcesso.run());
-
         status.setWrapText(true);
         status.getStyleClass().add("status-label");
 
         VBox card = new VBox(16, icone, marca, subtitulo,
-                Ui.campo("CPF", cpf), Ui.campo("Senha", senha), entrar, primeiroAcesso, status);
+                Ui.campo("CPF", cpf), Ui.campo("Senha", senha), entrar, status);
         card.getStyleClass().add("card");
         card.setPadding(new Insets(36));
         card.setAlignment(Pos.TOP_LEFT);
@@ -91,23 +83,17 @@ public class LoginView {
         }
 
         entrar.setDisable(true);
-        primeiroAcesso.setVisible(false);
         Ui.mensagem(status, "Verificando...", false);
 
-        Async.run("login", () -> api.listar("/funcionario"), funcionarios -> {
+        Async.run("login", () -> api.login(cpfDigitado, senhaDigitada), usuario -> {
             entrar.setDisable(false);
-            if (funcionarios.isEmpty()) {
-                Ui.mensagem(status, "Nenhum funcionário cadastrado ainda.", true);
-                primeiroAcesso.setVisible(true);
-                return;
-            }
-            ApiClient.Usuario usuario = encontrar(funcionarios, cpfDigitado, senhaDigitada);
             if (usuario == null) {
                 senha.clear();
                 Ui.mensagem(status, "CPF ou senha incorretos.", true);
                 return;
             }
             if (!cargoPermitido(usuario.cargo())) {
+                api.sair();
                 senha.clear();
                 Ui.mensagem(status, "Seu cargo (" + usuario.cargo() + ") não tem permissão para acessar o caixa.", true);
                 return;
@@ -121,20 +107,11 @@ public class LoginView {
         });
     }
 
-    private ApiClient.Usuario encontrar(List<JsonNode> funcionarios, String cpfDigitado, String senhaDigitada) {
-        for (JsonNode f : funcionarios) {
-            boolean cpfOk = apenasDigitos(f.path("cpf").asText("")).equals(cpfDigitado);
-            boolean senhaOk = f.path("senha").asText("").equals(senhaDigitada);
-            if (cpfOk && senhaOk) {
-                return new ApiClient.Usuario(f.path("id").asLong(), f.path("nome").asText(""),
-                        f.path("cargo").asText(""));
-            }
-        }
-        return null;
-    }
-
-    /** Só estes cargos podem entrar no sistema (comparação sem acento e sem diferença de maiúsculas). */
-    private static final Set<String> CARGOS_PERMITIDOS = Set.of("operador de caixa", "gerente");
+    /**
+     * Só estes cargos podem entrar no sistema (comparação sem acento e sem diferença de maiúsculas).
+     * "Administrador" é o usuário que a API cria quando o banco não tem nenhum funcionário.
+     */
+    private static final Set<String> CARGOS_PERMITIDOS = Set.of("operador de caixa", "gerente", "administrador");
 
     private static boolean cargoPermitido(String cargo) {
         String normalizado = Normalizer.normalize(cargo == null ? "" : cargo, Normalizer.Form.NFD)
