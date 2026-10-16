@@ -8,6 +8,7 @@ Interface desktop em **JavaFX** para o sistema de conveniência. Consome a API R
 - **Gestão de Produtos:** listagem, busca, cadastro, edição e exclusão.
 - **Clientes:** cadastro, edição, exclusão e listagem com busca.
 - **Gerenciar Funcionários:** cadastro, edição, exclusão e listagem com busca. Ao editar, a senha precisa ser informada novamente, porque a API não devolve a senha.
+- **Vendas:** fechamento por mês: total vendido, número de vendas, ticket médio, itens vendidos, lista das vendas do mês e quantidade vendida por produto.
 - **Assistente de Estoque:** perguntas em texto livre sobre o estoque (ex.: "o que está acabando?"), respondidas pela IA da API (`POST /assistente/pergunta`).
 
 ## Instalação (Windows)
@@ -20,7 +21,8 @@ O endereço da API pode ser alterado no arquivo `api.properties` (pasta `app` do
 2. Abra o programa e entre com CPF e senha (Operador de Caixa, Gerente ou Administrador).
 3. **Frente de Caixa:** clique nos produtos para adicionar ao carrinho, ajuste as quantidades, confira o vendedor e finalize com **F2**. O cliente é opcional.
 4. **Produtos, Clientes e Funcionários:** use o formulário para cadastrar; na lista é possível buscar, editar e excluir.
-5. **Assistente de Estoque:** digite a pergunta e pressione Enter. A API precisa estar configurada com a chave da Mistral (`MISTRAL_API_KEY`); sem ela, a tela mostra que o assistente não está configurado.
+5. **Vendas:** escolha o mês no seletor para ver o total vendido e a lista de vendas (use *Atualizar* para recarregar).
+6. **Assistente de Estoque:** digite a pergunta e pressione Enter. A API precisa estar configurada com a chave da Mistral (`MISTRAL_API_KEY`); sem ela, a tela mostra que o assistente não está configurado.
 
 ## Como executar (desenvolvimento)
 Pré-requisitos: Java 17 e a API rodando em `localhost:8080` (com o MySQL ligado).
