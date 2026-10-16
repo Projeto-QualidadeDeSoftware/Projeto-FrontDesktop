@@ -168,13 +168,15 @@ public class MainApp extends Application {
         Button produtos = createNavButton("📦", "Gestão de Produtos", false);
         Button clientes = createNavButton("👤", "Clientes", false);
         Button funcionarios = createNavButton("👥", "Gerenciar Funcionários", false);
+        Button vendas = createNavButton("📊", "Vendas", false);
         Button assistente = createNavButton("💬", "Assistente de Estoque", false);
-        navButtons.addAll(List.of(caixa, produtos, clientes, funcionarios, assistente));
+        navButtons.addAll(List.of(caixa, produtos, clientes, funcionarios, vendas, assistente));
 
         ProdutosView produtosView = new ProdutosView(apiClient);
         ClienteView clienteView = new ClienteView(apiClient);
         FuncionariosView funcionariosView = new FuncionariosView(apiClient);
         AssistenteView assistenteView = new AssistenteView(apiClient);
+        VendasView vendasView = new VendasView(apiClient);
 
         caixa.setOnAction(event -> {
             marcarAtivo(caixa);
@@ -198,13 +200,19 @@ public class MainApp extends Application {
             funcionariosView.recarregar();
         });
 
+        vendas.setOnAction(event -> {
+            marcarAtivo(vendas);
+            root.setCenter(vendasView.getView());
+            vendasView.recarregar();
+        });
+
         assistente.setOnAction(event -> {
             marcarAtivo(assistente);
             root.setCenter(assistenteView.getView());
             assistenteView.focar();
         });
 
-        VBox nav = new VBox(8, caixa, produtos, clientes, funcionarios, assistente);
+        VBox nav = new VBox(8, caixa, produtos, clientes, funcionarios, vendas, assistente);
         nav.setPadding(new Insets(8, 16, 16, 16));
 
         Region spacer = new Region();
