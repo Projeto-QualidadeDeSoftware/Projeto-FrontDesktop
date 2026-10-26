@@ -1,0 +1,36 @@
+name: CI
+
+# Integração contínua do front desktop: em todo push e pull request para main,
+# compila o código e gera o pacote do programa. Se não compilar, o PR não pode ser mesclado.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Compilar e empacotar
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Compilar e empacotar
+        run: |
+          chmod +x mvnw
+          ./mvnw -B package

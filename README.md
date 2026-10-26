@@ -12,9 +12,11 @@ Interface desktop em **JavaFX** para o sistema de conveniência. Consome a API R
 - **Assistente de Estoque:** perguntas em texto livre sobre o estoque (ex.: "o que está acabando?"), respondidas pela IA da API (`POST /assistente/pergunta`).
 
 ## Instalação (Windows)
-Baixe o instalador `Pronte Conveniencia-1.2.0.exe` na página de [Releases](../../releases) e execute. O Java já vem embutido; o programa é instalado para o usuário atual e cria atalhos no Menu Iniciar e na Área de Trabalho. Para remover, use "Aplicativos instalados" do Windows.
+Baixe o instalador `Pronte Conveniencia-<versão>.exe` da versão mais recente (*Latest*) na página de [Releases](../../releases) e execute. O Java já vem embutido; o programa é instalado para o usuário atual e cria atalhos no Menu Iniciar e na Área de Trabalho. Para remover, use "Aplicativos instalados" do Windows.
 
-O endereço da API pode ser alterado no arquivo `api.properties` (pasta `app` do programa instalado), pela variável de ambiente `PRONTE_API_URL` ou por `-Dapi.url`. Sem nada configurado, usa `http://localhost:8080`.
+O instalador oficial já vem configurado com a API de produção (`https://api.20-151-6-104.sslip.io`). Os instaladores marcados como *Pre-release* (`Pronte Conveniencia Homologacao`) apontam para a API de homologação e servem para os testes de aceitação; os dois podem ficar instalados ao mesmo tempo.
+
+O endereço da API fica no arquivo `api.properties` (pasta `app` do programa instalado) e também pode ser trocado pela variável de ambiente `PRONTE_API_URL` ou por `-Dapi.url`. Sem nada configurado, usa `http://localhost:8080`.
 
 ## Como usar
 1. Suba o MySQL e a API (veja a seção *Banco de dados*).
@@ -31,6 +33,10 @@ Pré-requisitos: Java 17 e a API rodando em `localhost:8080` (com o MySQL ligado
 mvnw.cmd javafx:run
 ```
 ou execute o `run.bat`.
+
+## CI/CD
+- **CI** (`.github/workflows/ci.yml`): em todo push e pull request para a `main`, compila e empacota o programa (`mvnw package`). Se não compilar, o PR não pode ser mesclado.
+- **CD** (`.github/workflows/cd.yml`): a cada alteração na `main`, gera no Windows o instalador de homologação (apontando para a API de homologação) e publica como *pre-release*; depois da aprovação de um integrante no environment `producao`, gera o instalador de produção e publica como a versão oficial (*latest*). O endereço da API de cada ambiente vem da variable `API_URL` do environment no GitHub, e a versão é `1.3.<número da execução>`.
 
 ## Banco de dados
 O arquivo [`database/projeto.sql`](database/projeto.sql) recria o banco `projeto` do MySQL com a estrutura e dados fictícios (produtos, clientes e funcionários). Para importar:
