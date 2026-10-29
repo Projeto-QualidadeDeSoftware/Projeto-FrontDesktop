@@ -73,7 +73,7 @@ public class VendasView {
             todas = registros.stream().map(Venda::de).filter(v -> v.data() != null).toList();
             Ui.mensagem(status, "", false);
             atualizarMeses();
-        }, erro -> Ui.mensagem(status, "Erro ao carregar vendas: " + erro.getMessage(), true));
+        }, erro -> Ui.mensagem(status, "Erro ao carregar vendas: " + Ui.mensagemDe(erro), true));
     }
 
     // ------------------------------------------------------------------ dados
@@ -151,54 +151,35 @@ public class VendasView {
             }
         });
 
-        Button atualizar = Ui.botao("Atualizar", "outline-button");
-        atualizar.setPadding(new Insets(10, 22, 10, 22));
+        Button atualizar = Ui.botao("⟳  Atualizar", "secondary-button");
         atualizar.setOnAction(event -> recarregar());
 
         status.setWrapText(true);
         status.getStyleClass().add("status-label");
 
         Label rotulo = new Label("Mês");
-        rotulo.getStyleClass().add("section-title");
-        Region espaco = new Region();
-        HBox.setHgrow(espaco, Priority.ALWAYS);
-        HBox filtro = new HBox(12, Ui.iconeCartao("📅"), rotulo, mesBox, atualizar, espaco, status);
-        filtro.setAlignment(Pos.CENTER_LEFT);
+        rotulo.getStyleClass().add("cart-item-name");
+        HBox topo = Ui.topo(Ui.cabecalho("Fechamento", "Vendas", "Resumo das vendas registradas no mês escolhido."),
+                rotulo, mesBox, atualizar);
 
         HBox resumo = new HBox(18,
-                indicador("TOTAL VENDIDO", totalValor),
-                indicador("VENDAS REALIZADAS", totalVendas),
-                indicador("TICKET MÉDIO", ticketMedio),
-                indicador("ITENS VENDIDOS", totalItens));
+                Ui.indicador("Total vendido", totalValor, true),
+                Ui.indicador("Vendas realizadas", totalVendas, false),
+                Ui.indicador("Ticket médio", ticketMedio, false),
+                Ui.indicador("Itens vendidos", totalItens, false));
 
         configurarTabelaVendas();
         configurarTabelaProdutos();
         VBox cardVendas = card("Vendas do mês", tabelaVendas);
         VBox cardProdutos = card("Produtos vendidos", tabelaProdutos);
-        cardVendas.setPrefWidth(620);
-        cardProdutos.setPrefWidth(380);
+        cardVendas.setPrefWidth(720);
+        cardProdutos.setPrefWidth(330);
         HBox.setHgrow(cardVendas, Priority.ALWAYS);
         HBox.setHgrow(cardProdutos, Priority.ALWAYS);
         HBox listas = new HBox(18, cardVendas, cardProdutos);
         VBox.setVgrow(listas, Priority.ALWAYS);
 
-        VBox cardFiltro = new VBox(filtro);
-        cardFiltro.getStyleClass().add("card");
-        cardFiltro.setPadding(new Insets(16, 20, 16, 20));
-
-        root.getChildren().addAll(Ui.cabecalho("Vendas"), cardFiltro, resumo, listas);
-    }
-
-    private VBox indicador(String titulo, Label valor) {
-        Label rotulo = new Label(titulo);
-        rotulo.getStyleClass().add("cart-item-muted");
-        valor.getStyleClass().add("title");
-        VBox caixa = new VBox(6, rotulo, valor);
-        caixa.getStyleClass().add("card");
-        caixa.setPadding(new Insets(16, 20, 16, 20));
-        HBox.setHgrow(caixa, Priority.ALWAYS);
-        caixa.setMaxWidth(Double.MAX_VALUE);
-        return caixa;
+        root.getChildren().addAll(topo, resumo, listas, status);
     }
 
     private VBox card(String titulo, TableView<?> tabela) {
@@ -215,11 +196,11 @@ public class VendasView {
         tabelaVendas.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tabelaVendas.setPlaceholder(new Label("Nenhuma venda neste mês."));
         tabelaVendas.setSelectionModel(null);
-        tabelaVendas.getColumns().add(coluna("Nº", v -> String.format("%03d", v.id()), 0.6, "cell-id",
+        tabelaVendas.getColumns().add(coluna("Nº", v -> String.format("%03d", v.id()), 0.5, "cell-id",
                 Ui.ESQUERDA));
         tabelaVendas.getColumns().add(coluna("DATA", v -> v.data().format(DATA), 1.1, "cell-muted", Ui.ESQUERDA));
-        tabelaVendas.getColumns().add(coluna("CLIENTE", Venda::cliente, 1.8, "cell-strong", Ui.ESQUERDA));
-        tabelaVendas.getColumns().add(coluna("VENDEDOR", Venda::vendedor, 1.5, "cell-muted", Ui.ESQUERDA));
+        tabelaVendas.getColumns().add(coluna("CLIENTE", Venda::cliente, 2.3, "cell-strong", Ui.ESQUERDA));
+        tabelaVendas.getColumns().add(coluna("VENDEDOR", Venda::vendedor, 2.0, "cell-muted", Ui.ESQUERDA));
         tabelaVendas.getColumns().add(coluna("ITENS", v -> String.valueOf(v.itens()), 0.6, "cell-muted",
                 Ui.DIREITA));
         tabelaVendas.getColumns().add(coluna("TOTAL", v -> "R$ " + Ui.dinheiro(v.total()), 1.2, "cell-strong",
@@ -243,6 +224,7 @@ public class VendasView {
         Ui.cabecalhoColuna(coluna, titulo, alinhamento);
         coluna.setCellValueFactory(c -> new ReadOnlyObjectWrapper<>(valor.apply(c.getValue())));
         coluna.setPrefWidth(peso * 100);
+        coluna.setMinWidth(peso * 68);
         coluna.setSortable(false);
         coluna.setCellFactory(col -> new TableCell<>() {
             @Override

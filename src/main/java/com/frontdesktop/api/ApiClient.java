@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ApiClient {
-    public static final String CONSUMIDOR_FINAL = "Consumidor Final";
     private static final String BASE_URL = resolverUrlBase();
 
     /**
@@ -171,26 +170,6 @@ public class ApiClient {
 
     public List<Pessoa> listarClientes() throws IOException, InterruptedException {
         return listarPessoas("/cliente", "clientes");
-    }
-
-    /**
-     * Lista os clientes garantindo que o "Consumidor Final" exista (a API exige um cliente em toda venda).
-     * Ele vem sempre em primeiro lugar.
-     */
-    public List<Pessoa> listarClientesComConsumidorFinal() throws IOException, InterruptedException {
-        List<Pessoa> clientes = listarClientes();
-        if (clientes.stream().noneMatch(c -> CONSUMIDOR_FINAL.equalsIgnoreCase(c.nome()))) {
-            java.util.Map<String, Object> campos = new java.util.LinkedHashMap<>();
-            campos.put("nome", CONSUMIDOR_FINAL);
-            campos.put("cpf", "000.000.000-00");
-            campos.put("email", "consumidor.final@pronte.com");
-            campos.put("telefone", "(00) 00000-0000");
-            salvar("/cliente", null, campos);
-            clientes = listarClientes();
-        }
-        List<Pessoa> ordenada = new ArrayList<>(clientes);
-        ordenada.sort(java.util.Comparator.comparing(c -> !CONSUMIDOR_FINAL.equalsIgnoreCase(c.nome())));
-        return ordenada;
     }
 
     public List<Pessoa> listarFuncionarios() throws IOException, InterruptedException {
