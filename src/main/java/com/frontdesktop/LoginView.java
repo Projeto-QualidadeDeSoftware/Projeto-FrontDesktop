@@ -44,12 +44,11 @@ public class LoginView {
     private void montar() {
         root.getStyleClass().add("main-panel");
 
-        Label glyph = new Label("🏪");
-        glyph.getStyleClass().add("brand-icon-glyph");
-        StackPane icone = new StackPane(glyph);
-        icone.getStyleClass().add("brand-icon");
-
-        Label marca = new Label("Prontê Conveniência");
+        // a logo tem fundo azul-marinho: vira o topo do cartão, como na web
+        StackPane icone = new StackPane(Ui.logo(240));
+        icone.setStyle("-fx-background-color: #0e1f39; -fx-background-radius: 14px; -fx-padding: 10;");
+        icone.setMaxWidth(Region.USE_PREF_SIZE);
+        Label marca = new Label("Bem-vindo ao PRONTE");
         marca.getStyleClass().add("title");
         Label subtitulo = new Label("Entre com seu CPF e senha para abrir o caixa");
         subtitulo.getStyleClass().add("cart-item-muted");
@@ -66,7 +65,11 @@ public class LoginView {
                 Ui.campo("CPF", cpf), Ui.campo("Senha", senha), entrar, status);
         card.getStyleClass().add("card");
         card.setPadding(new Insets(36));
-        card.setAlignment(Pos.TOP_LEFT);
+        card.setAlignment(Pos.TOP_CENTER);
+        marca.setMaxWidth(Double.MAX_VALUE);
+        marca.setAlignment(Pos.CENTER);
+        subtitulo.setMaxWidth(Double.MAX_VALUE);
+        subtitulo.setAlignment(Pos.CENTER);
         card.setMaxWidth(420);
         card.setMaxHeight(Region.USE_PREF_SIZE);
 
@@ -103,7 +106,7 @@ public class LoginView {
             aoEntrar.accept(usuario);
         }, erro -> {
             entrar.setDisable(false);
-            Ui.mensagem(status, "Não foi possível conectar à API: " + erro.getMessage(), true);
+            Ui.mensagem(status, "Não foi possível conectar à API: " + Ui.mensagemDe(erro), true);
         });
     }
 
