@@ -24,7 +24,8 @@ O endereço padrão é `https://hml.20-151-6-104.sslip.io` (troque com `HML_API`
 | Auditoria como Administrador / como Supervisor | 200 / 403 |
 | Excluir cliente ou produto com venda | recusado (o desktop mostra mensagem amigável) |
 
-## Problemas conhecidos da API (back-end)
-- Aceita CPF duplicado e CPF inválido em clientes (o desktop agora valida o CPF antes de enviar).
-- Aceita venda com data futura.
-- Devolve 404 com a mensagem técnica do banco quando a exclusão é bloqueada por vínculo.
+## Problemas da API corrigidos em 29/10/2026 (Projeto-API, PR #29)
+- CPF duplicado em clientes: 409 "Já existe um cliente com este CPF".
+- CPF inválido (dígitos verificadores ou todos os dígitos iguais): 400 "CPF inválido".
+- Venda com data futura: 400 "A data da venda não pode ser no futuro".
+- Exclusão bloqueada por vínculo: 409 com mensagem clara (por exemplo "Não é possível excluir o cliente porque ele tem vendas registradas"); registro inexistente: 404.

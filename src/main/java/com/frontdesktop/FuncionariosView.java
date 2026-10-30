@@ -21,6 +21,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /** Funcionários: cartões de totais, lista paginada com busca e cadastro/edição em janela. */
@@ -28,6 +29,10 @@ public class FuncionariosView {
 
     private static final String ENDPOINT = "/funcionario";
     private static final int POR_PAGINA = 6;
+
+    /** Mesma lista do front web e do mobile. */
+    private static final List<String> CARGOS = List.of(
+            "Administrador", "Gerente", "Operador de Caixa", "Supervisor", "Estoquista", "Repositor");
 
     private final ApiClient api;
     private final VBox root = new VBox(18);
@@ -120,9 +125,9 @@ public class FuncionariosView {
         TextField nome = Ui.entrada("Ex: João da Silva Santos");
         TextField cpf = Ui.mascaraCpf(Ui.entrada("000.000.000-00"));
         ComboBox<String> cargo = new ComboBox<>();
-        cargo.setEditable(true);
         cargo.setPromptText("Selecione o cargo");
-        cargo.getItems().addAll("Operador de Caixa", "Gerente", "Supervisor", "Estoquista", "Repositor");
+        cargo.setMaxWidth(Double.MAX_VALUE);
+        cargo.getItems().addAll(CARGOS);
         TextField salario = Ui.entrada("R$ 0,00");
         PasswordField senha = Ui.senha("Digite a senha");
         PasswordField confirmarSenha = Ui.senha("Confirme a senha");
@@ -133,7 +138,12 @@ public class FuncionariosView {
         if (existente != null) {
             nome.setText(existente.path("nome").asText(""));
             cpf.setText(existente.path("cpf").asText(""));
-            cargo.setValue(existente.path("cargo").asText(""));
+            String cargoAtual = existente.path("cargo").asText("").trim();
+            if (!cargoAtual.isEmpty() && !CARGOS.contains(cargoAtual)) {
+                // funcionário antigo cadastrado com outro cargo: continua aparecendo na lista
+                cargo.getItems().add(cargoAtual);
+            }
+            cargo.setValue(cargoAtual.isEmpty() ? null : cargoAtual);
             salario.setText(Ui.dinheiro(existente.path("salario").asDouble()));
             // a API não devolve a senha (ela fica guardada protegida): é preciso informar a senha de novo
             erro.setText("Informe a senha do funcionário para salvar (pode ser a mesma).");
@@ -168,7 +178,7 @@ public class FuncionariosView {
         salvar.setOnAction(event -> {
             erro.getStyleClass().remove("status-error");
             erro.getStyleClass().add("status-error");
-            String cargoTexto = cargo.getEditor().getText() == null ? "" : cargo.getEditor().getText().trim();
+            String cargoTexto = cargo.getValue() == null ? "" : cargo.getValue().trim();
             if (nome.getText().isBlank() || cpf.getText().isBlank() || cargoTexto.isEmpty()
                     || salario.getText().isBlank() || senha.getText().isEmpty()) {
                 erro.setText("Preencha todos os campos.");
